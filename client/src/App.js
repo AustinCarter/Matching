@@ -1,8 +1,15 @@
+import React, { useEffect, useState, useRef } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import User from './components/user'
+import io from "socket.io-client";
 
 function App() {
+  const socket = useRef();
+  useEffect(() => {
+    socket.current = io.connect("/");
+  }, []);
+
   return (
     <div className="App">
       <header className="App-header">

@@ -19,9 +19,10 @@ Login
 		- Register to Database
 	- Check credintials
 		- Username/email
-		- Hashed password
+		------- Hashed password
 		------ 2fac?
 	- Check if someone is currently in call with you, otherwise show Request match
+		- Might only do calls between connected people
 
 Edit Profile/Add data
 	- Name
