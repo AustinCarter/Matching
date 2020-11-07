@@ -1,0 +1,51 @@
+High Level: Build a React web app that retrieves matches for the current logged in member.
+
+ex. A member joins as Brian, and requests a match, and that profile is displayed onto the screen.
+	Brian can end call
+	Brian can start the next match
+	Brian’s match should be able to log in, and see Brian on the screen.
+
+	Bonus:
+	More Efficient Matching:
+		Match users based on tags / criteria
+	Database 
+	Other features you think of
+
+---------------------------------------------------------------------------------------------
+
+Login
+	-Create Profile
+		- Check if it exists
+		- Register to Database
+	- Check credintials
+		- Username/email
+		- Hashed password
+		------ 2fac?
+	- Check if someone is currently in call with you, otherwise show Request match
+
+Edit Profile/Add data
+	- Name
+	- Profile pic?
+	- Matching Tags/prefs
+
+Request match
+
+Matching
+	- Query for users
+	- Calculate fitness/good matches
+		-Matching algorithim?
+		- Cuold be interesting to do an anti-match every n matches
+	- Filter based on score
+		- Filter tolerence should grow as matches depleted
+	- Display match from potential pool
+		- Could show tags/criteria that was matched on (depending on opaqueness of matching alg)
+
+Show user on screen
+	- PROVISIONARY:  just mutually display profiles when "in a call" 
+	- Access Camera and mic
+	- Process/encode audio and video data
+		- *******I predict this will be the largest pain point out of everything*********
+
+Someone ends call
+	- Other user should see the request match screen
+
