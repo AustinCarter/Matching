@@ -1,10 +1,17 @@
 import React, { Component } from 'react';
+import Button from '@material-ui/core/Button';
 import UserLogin from './UserLogin';
 import FindMatch from './FindMatch';
 import MatchProfile from './MatchProfile';
 import io from "socket.io-client";
 
 const { RTCPeerConnection, RTCSessionDescription } = window;
+
+const styles = {
+  button: {
+    padding: '0 30px',
+  }
+}
 
 export class StateManager extends Component {
   state = {
@@ -33,9 +40,8 @@ export class StateManager extends Component {
     this.remoteVideo = React.createRef();
   }
 
-  componentDidMount() {this.forceUpdate()
-    //super();
-    // this.remoteVideoStream = new MediaStream();
+  componentDidMount() {
+    
     if(Object.keys(this.state.socket).length === 0) 
     {
       console.log("init state manager....");
@@ -49,14 +55,13 @@ export class StateManager extends Component {
         // formating
 
       peerConnection.ontrack = function({ streams: [stream] }) {
-          //this.remoteVideo.current.srcObject = stream;
+        
           this.remoteStream = stream;
           console.log(stream);
           console.log(this);
-          //console.log(this.remoteVideoStreams)
       };
 
-      navigator.getUserMedia(
+      navigator.mediaDevices.getUserMedia(
         { video: true, audio: true },
         stream => {
           stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
@@ -100,16 +105,17 @@ export class StateManager extends Component {
       }
       this.setState({ page: 4 });
       console.log("call answered");
-     // this.startCall(data.soc)({});
-     // 
-     // this.startCall(soc.id)({})
-    // this.state.isAlreadyCalling = true;
-      
+
     });
+
     soc.on("callback", async (data) => {
       console.log("callingback")
       this.state.currentMatch = {socket: data.from}
       this.startCall()({})
+    })
+
+    soc.on("callEnded", async (data) => {
+      this.setState({ page: 2 })
     })
 
     }
@@ -119,6 +125,8 @@ export class StateManager extends Component {
   }
 
   componentDidUpdate() {
+    //Refs do not get initialized until they are rendered at least once,
+    //componenetDidUpdate will be called after each re render, meaning after switch to in call we will have access to them
     if(this.localVideo.current) {
         this.localVideo.current.srcObject = this.localStream;
         this.remoteVideo.current.srcObject = this.state.peerConnection.remoteStream;
@@ -127,17 +135,6 @@ export class StateManager extends Component {
       }
    
   }
-
-  /*callUser = async (socketId) => {
-      const offer = await this.state.peerConnection.createOffer();
-      await this.state.peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-
-      socket.emit("call-user", {
-        offer,
-        to: socketId
-      });
-    }*/
-
 
   setUserActive = async () => {
     console.log("Adding user to users list");
@@ -163,15 +160,19 @@ export class StateManager extends Component {
     this.setState({ [input]: e.target.value });
   };
 
-  
+  endCall = () => e => {
+    console.log("ending call");
+    this.state.socket.emit("endCall", {toCall: this.state.currentMatch.socket});
+    this.setState({ page: 2 });
+  }  
+
+  nextMatch = () => e => {
+    console.log("getting next match");
+    // this.state.socket.emit("endCall", {toCall: this.state.socket.id});
+  }  
 
   render() {
     const { page, socket } = this.state;
-    
-    if(this.remoteVideo.current)
-    {
-      this.remoteVideo.current.srcObject = this.remoteVideoSrc
-    }
 
     switch (page) {
       case 1:
@@ -198,14 +199,24 @@ export class StateManager extends Component {
             match={this.state.currentMatch}
           />
           );
-      case 4:
+      case 4: // In call state
         return (
             <div>
-              <h2>In A Call</h2>
-              <video ref={this.localVideo} autoPlay={true} muted={true}>
-              </video>
-              <video ref={this.remoteVideo} autoPlay={true} muted={false}>
-              </video>
+              <video playsInline ref={this.localVideo} autoPlay={true} muted={true} width="50%"/>
+              <video playsInline ref={this.remoteVideo} autoPlay={true} muted={true} width="50%" />
+              <br/>
+              <Button
+              color="secondary"
+              variant="contained"
+              onClick={this.endCall()}
+              className={styles.button}
+            >End Call</Button>
+              <Button
+              color="primary"
+              variant="contained"
+              onClick={this.nextMatch()}
+              className={styles.button}
+            >Next Match</Button>
             </div>
           );
       default:

@@ -18,18 +18,16 @@ Login
 		- Check if it exists
 		- Register to Database
 	- Check credintials
-		- Username/email
-		------- Hashed password
-		------ 2fac?
+		- Username/email*
 	- Check if someone is currently in call with you, otherwise show Request match
-		- Might only do calls between connected people
+		- Might only do calls between connected people*
 
 Edit Profile/Add data
-	- Name
+	- Name*
 	- Profile pic?
 	- Matching Tags/prefs
 
-Request match
+Request match*
 
 Matching
 	- Query for users
@@ -42,11 +40,19 @@ Matching
 		- Could show tags/criteria that was matched on (depending on opaqueness of matching alg)
 
 Show user on screen
-	- PROVISIONARY:  just mutually display profiles when "in a call" 
-	- Access Camera and mic
-	- Process/encode audio and video data
+	- Access Camera and mic*
+	- Process/encode audio and video data*
 		- *******I predict this will be the largest pain point out of everything*********
 
 Someone ends call
 	- Other user should see the request match screen
 
+
+
+
+Note: It is preferable in react/js treat objects as immutable (more efficient for determining what in the DOM needs to be rerendered.) i.e. need to be concncious of tendency to pass by ref
+
+Note: js objects are mutable, meaning can just add arbitrary field to them ad hoc, this can act like a ud* in c-style programming. Ended up being useful from callback for peerconnection on track.
+			Worth nothing that the callback for ontrack behaved as though it was in peerconnection, meaning accessing this.someField set the field on the peerConnection, not on the parent class, in this case StateManager. <-- last point important, was very counter intuitive
+
+Note: Hello Austin, this is you from the past. if you are working on web programming, you better use typescript. Weak typing is the worst and will just result in headaches, don't be a fool a second time.
