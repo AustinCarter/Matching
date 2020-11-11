@@ -64,6 +64,25 @@ io.on('connection', socket => {
 
     })
 
+    socket.on("nextCall", (data) => {
+    	console.log(`${socket.id} changing from ${data.toEnd} -> ${data.toCall}`)
+
+    	var index = 0;
+		for(user of usersInCall) {
+			if(user.socket == data.toEnd) {
+				console.log("Moving user back to avaliable pool");
+				avaliableUsers.push(user);
+				usersInCall.splice(index, 1);
+				break; // only have one item to remove
+			} 
+			else
+				index ++;
+		}
+
+    	io.to(data.toEnd).emit('callEnded', {})
+    	io.to(socket.id).emit('goNext', {toCall: data.toCall})
+    })
+
 	io.on('disconnect', () => { console.log(`Disconnecting ${socket.id}`) });
 });
 

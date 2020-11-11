@@ -7,11 +7,6 @@ import io from "socket.io-client";
 
 const { RTCPeerConnection, RTCSessionDescription } = window;
 
-const styles = {
-  button: {
-    padding: '0 30px',
-  }
-}
 
 export class StateManager extends Component {
   state = {
@@ -54,14 +49,13 @@ export class StateManager extends Component {
       this.remoteVideoTag = (<><h1>remote Video</h1><video ref={this.remoteVideo} autoPlay={true} muted={false}/></>)
         // formating
 
-      peerConnection.ontrack = function({ streams: [stream] }) {
-        
+      peerConnection.ontrack = function({ streams: [stream] }) { 
           this.remoteStream = stream;
           console.log(stream);
           console.log(this);
       };
 
-      navigator.mediaDevices.getUserMedia(
+      navigator.getUserMedia(
         { video: true, audio: true },
         stream => {
           stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
@@ -118,6 +112,11 @@ export class StateManager extends Component {
       this.setState({ page: 2 })
     })
 
+    soc.on("goNext", async (data) => {
+      this.state.currentMatch = {socket: data.toCall }
+      this.startCall()({})
+    })
+
     }
     else
       console.log("socket already exists for this manager");
@@ -162,13 +161,22 @@ export class StateManager extends Component {
 
   endCall = () => e => {
     console.log("ending call");
+    this.state.isAlreadyCalling = false;
     this.state.socket.emit("endCall", {toCall: this.state.currentMatch.socket});
     this.setState({ page: 2 });
   }  
 
-  nextMatch = () => e => {
+  nextMatch = () => async e => {
     console.log("getting next match");
-    // this.state.socket.emit("endCall", {toCall: this.state.socket.id});
+    this.state.isAlreadyCalling = false;
+    const lastSocket = this.state.currentMatch.socket; 
+    const match = await fetch(`/api/match/${this.state.socket.id}`);
+    this.state.currentMatch = await match.json();
+    
+    await this.state.socket.emit("nextCall", {
+      toCall: this.state.currentMatch.socket,
+      toEnd: lastSocket
+    });
   }  
 
   render() {
@@ -209,13 +217,11 @@ export class StateManager extends Component {
               color="secondary"
               variant="contained"
               onClick={this.endCall()}
-              className={styles.button}
             >End Call</Button>
               <Button
               color="primary"
               variant="contained"
               onClick={this.nextMatch()}
-              className={styles.button}
             >Next Match</Button>
             </div>
           );
