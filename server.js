@@ -4,12 +4,15 @@ const app = express();
 const server = http.createServer(app);
 const socket = require("socket.io");
 const io = socket(server);
+const murmur = require("murmurhash-js"); 
 
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 
 const avaliableUsers = [];
 const usersInCall = [];
+
+const HASHSEED = 0x32F1A902;
 
 io.on('connection', socket => {
 	console.log(`Connection from socket ${socket.id}`);
@@ -97,18 +100,46 @@ app.get('/api/callers', (req, res) => {
  /////////////////////////
 
 app.get('/api/match/:socket', (req, res) => {
+	//TODO: handle the case where no match can be found
+	var bestFitScore = 0
+	var bestMatch = avaliableUsers[0]
+
+	const self = avaliableUsers.filter(user => user.socket == req.params.socket)[0]
+	//TODO: check that self is found
+	console.log(`matching ${self.name}`)
+
 	for(user of avaliableUsers) {
-		if(user.socket != req.params.socket)
-			return res.json(user)
+		score = 0;
+
+		for(tag of user.tags){
+			for(myTag of self.tags){
+				if(myTag == tag)
+					score++
+			}
+		}
+
+		if(user.socket != req.params.socket && score > bestFitScore) {
+			bestMatch = user;
+			bestFitScore = score;
+		}
 	}
-	res.status(400).json({ msg: "No avaliable users found"});
+	console.log(`matched with ${bestMatch.name} with a fitness score of ${bestFitScore}`)
+	return res.json(bestMatch)
 });
 
 app.post('/api/users', (req, res) => {
+	//TODO: handle malformed request
 	console.log(req.body);
+	var hashedTags = []
+	// hash tags so can do integer comparisons instead of string comparisons (also we can call them hashed tags which is fun)
+	// when hashing want to change all letters to lowercase and remove extra spacing at ends so that we can get more consistant results
+	for(tag of req.body.tags.split(',')) 
+		hashedTags.push(murmur.murmur3(tag.toLowerCase().trim(), HASHSEED))
+
 	var newUser = {
 		name: req.body.name,
-		socket: req.body.socket
+		socket: req.body.socket,
+		tags: hashedTags
 	};
 
 	if(!newUser.name || !newUser.socket) {

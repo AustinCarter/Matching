@@ -12,6 +12,7 @@ export class StateManager extends Component {
   state = {
     page: 1, // Ideally this would be an enum, is that supported in JS?
     name: '',
+    tags: [],
     socket: '',
     currentMatch: {},
     peerConnection: {},
@@ -143,7 +144,7 @@ export class StateManager extends Component {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ name: this.state.name, socket: this.state.socket.id })
+      body: JSON.stringify({ name: this.state.name, socket: this.state.socket.id, tags: this.state.tags })
     });
     const content = await rawResponse.json();
 
@@ -156,6 +157,7 @@ export class StateManager extends Component {
   };
 
   handleChange = input => e => {
+    console.log(e.target.value)
     this.setState({ [input]: e.target.value });
   };
 
@@ -207,7 +209,7 @@ export class StateManager extends Component {
             match={this.state.currentMatch}
           />
           );
-      case 4: // In call state
+      case 4: // In-call state
         return (
             <div>
               <video playsInline ref={this.localVideo} autoPlay={true} muted={true} width="50%"/>
