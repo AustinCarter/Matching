@@ -1,12 +1,12 @@
 import './App.css';
-import StateManager from "./components/StateManager"
+import SessionManager from "./components/SessionManager"
 
 function App() {
 
   return (
     <div className="App">
       <header className="App-header">
-          <StateManager />     
+          <SessionManager />     
       </header>
     </div>
   );

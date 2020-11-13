@@ -10,9 +10,15 @@ export class FindMatch extends Component {
   getMatch = (page, socket) => async e => {
     e.preventDefault();
     const match = await fetch(`/api/match/${socket.id}`);
-    e.target.value = await match.json();
-    this.props.handleChange('currentMatch')(e);
-    this.props.setPage(page)(e);
+    if(match.ok)
+    {
+      const matchJson = await match.json();
+      e.target = {value: matchJson}; // prevents value from being cast to a string 
+      this.props.handleChange('currentMatch')(e);
+      this.props.setPage(page)(e); 
+    }
+    else
+      throw new Error(`HTTP error: ${match.status}`);
   };
 
   render() {

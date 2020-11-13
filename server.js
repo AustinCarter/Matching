@@ -2,12 +2,25 @@ const express = require('express');
 const http = require("http")
 const app = express();
 const server = http.createServer(app);
+
 const socket = require("socket.io");
 const io = socket(server);
+
 const murmur = require("murmurhash-js"); 
 
 app.use(express.json());
-app.use(express.urlencoded({extended: false}));
+
+const mongoose = require('mongoose');
+
+const mongoDB = 'mongodb+srv://Austin:Carter@cluster0.tw0ns.mongodb.net/TimeFace?retryWrites=true&w=majority';
+mongoose.connect(mongoDB, {useNewUrlParser: true, useUnifiedTopology: true});
+var db = mongoose.connection;
+
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+
+const User = require("./schemas/user");
+
+
 
 const avaliableUsers = [];
 const usersInCall = [];
@@ -124,17 +137,24 @@ app.get('/api/match/:socket', (req, res) => {
 		}
 	}
 	console.log(`matched with ${bestMatch.name} with a fitness score of ${bestFitScore}`)
-	return res.json(bestMatch)
+	console.log(`${bestMatch.name}: ${bestMatch.socket}  ${bestMatch.tags}`)
+	res.json(bestMatch)
 });
 
-app.post('/api/users', (req, res) => {
+app.post('/api/users', async (req, res) => {
 	//TODO: handle malformed request
 	console.log(req.body);
+
+	//check if the user exists before adding it 
+	const exists = await User.exists({ name: req.body.name.toLowerCase() });
+	if(exists)
+		return res.status(409).json({ msg: "Username is already in use!" });
+
 	var hashedTags = []
 	// hash tags so can do integer comparisons instead of string comparisons (also we can call them hashed tags which is fun)
-	// when hashing want to change all letters to lowercase and remove extra spacing at ends so that we can get more consistant results
-	for(tag of req.body.tags.split(',')) 
-		hashedTags.push(murmur.murmur3(tag.toLowerCase().trim(), HASHSEED))
+	const tagsList = req.body.tags;
+	for(tag of tagsList) 
+		hashedTags.push(murmur.murmur3(tag, HASHSEED))
 
 	var newUser = {
 		name: req.body.name,
@@ -146,8 +166,38 @@ app.post('/api/users', (req, res) => {
 		return res.status(400).json({ msg: "User needs a name and socket" });
 	}
 
+	User.create({ name: newUser.name.toLowerCase(), tags: tagsList }, function (err, instance) {
+		if (err) return console.log(err.code());
+	});
+
 	avaliableUsers.push(newUser);
 	res.json(avaliableUsers);
+});
+
+app.get('/api/login/:name/:socket', (req, res) => {
+	User.find()
+		.where('name').equals(req.params.name.toLowerCase())
+		.exec((err, users) => {
+			if (err) console.log(err.code());
+			if (users.length > 1) 
+				console.log(`[DBERROR]: multiple instances of ${users[0].name} in database`);
+			if (users.length == 0) 
+				return res.status(404).json({ msg: " User login does not exist! "});
+
+
+			const hashedTags = users[0].tags.map((tag) => {
+					return murmur.murmur3(tag, HASHSEED)
+				});
+
+			avaliableUsers.push({
+				name: req.params.name, 
+				socket: req.params.socket,
+				tags: hashedTags
+			});
+
+			console.log(users[0])
+			res.json(users[0]);
+		})
 });
 
 const port = 5000;

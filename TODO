@@ -13,32 +13,39 @@ ex. A member joins as Brian, and requests a match, and that profile is displayed
 
 ---------------------------------------------------------------------------------------------
 
+Look into sessoinmanager and server refactors
+test if fixme is still applicable
+error handling
+doc triple for loop
+
+
+
 Login
-	-Create Profile
-		- Check if it exists
-		- Register to Database
-	- Check credintials
+	-Create Profile*
+		- Check if it exists*
+		- Register to Database*
+	- Check credintials*
 		- Username/email*
-	- Check if someone is currently in call with you, otherwise show Request match
+	- Check if someone is currently in call with you, otherwise show Request match - NA
 		- Might only do calls between connected people*
 
 Edit Profile/Add data
 	- Name*
 	- Profile pic?
-	- Matching Tags/prefs
+	- Matching Tags/prefs*
 
 Request match*
 
 Matching
 	- Query for users*
-	- Calculate fitness/good matches
+	- Calculate fitness/good matches*
 		-Matching algorithim?
 		- Cuold be interesting to do an anti-match every n matches
-	- Filter based on score
+	- Filter based on score - NA
 		- Filter tolerence should grow as matches depleted
-	- Display match from potential pool
-		- Could show tags/criteria that was matched on (depending on opaqueness of matching alg)
-			- using hashes sou
+	- Display match from potential pool*
+		- Could show tags/criteria that was matched on (depending on opaqueness of matching alg)*
+			- using hashes complicates, but it is still possible because a session retains its own tags in unhashed form and coud just hash them to compare*
  
  -- Plan: store hashed strings of the tags on the server. Will probably use murmurhash3 if there is a good implementation for it on js bc it is fast + has very low collision rate. This means tag comparisson can be done a integer comparisson instead. Iterating over each tag for a user and comparing to all tags of another should be ok. Complexity is n^2, but int comparisson should be 1-2 cycles (unless js does weird stuff?) and 1 user will should only have a small number of tags (less than 100 I would imagine), so should be fine. The real scaling issue here would be how many users there are, as you would have to do the tag comparissons for each potential match. The solution to this would be to bucket them somehow so that only a sub-set of users would be considered --> Even this might be over-engineering, if we take extreme case that every user has 100 tags, one comparison would take on the order of 10,000 cpu cycles since cpu's operate on order of 1,000,000,000 (usualy 3.5ghz so 3,500,000,000 esp for a server) can do on the order of 100,000 potential matches per second per core (realistically probably more due to lower tag numbers, plus cache performance should bo good with simple array of ints ds). Since comparissons only need to happen with currenlty active users who are not already in a call, having a pool on order of 100,000 would mean user base of multiple billion, at this point would minimally at least have language options, which would serve as natural partitioning to maintain sub-second(if not factoring network delays) matching
 
@@ -66,3 +73,5 @@ Note: js objects are mutable, i.e. can just add arbitrary field to them ad hoc, 
 Note: Hello Austin, this is you from the past. if you are working on web programming, you better use typescript. Weak typing is the worst and will just result in headaches, don't be a fool a second time.
 
 ?????: What is the point of the state in component? how is it different from just saying this.val = x. Does it just make it obvious what members a class has? does it help with compiler optimizations or something?
+
+Note: --related to typescript note-- dynamic leading can lead to unintended casts. ex. when using e.target.value, sometimes it would be expecting a string causing an object value to be stringified to '[object Object]' sometimes but not others, causing an inconsistent bug meaning it was harder to track down

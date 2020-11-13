@@ -8,7 +8,7 @@ import io from "socket.io-client";
 const { RTCPeerConnection, RTCSessionDescription } = window;
 
 
-export class StateManager extends Component {
+export class SessionManager extends Component {
   state = {
     page: 1, // Ideally this would be an enum, is that supported in JS?
     name: '',
@@ -18,17 +18,6 @@ export class StateManager extends Component {
     peerConnection: {},
     isAlreadyCalling: false
   };
-
-  startCall = () => async e => {
-    const peerConnection = this.state.peerConnection;
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-    console.log(`calling: ${this.state.currentMatch.socket}`)
-    this.state.socket.emit("startCall", { 
-      toCall: this.state.currentMatch.socket, 
-      offer: offer 
-    });
-  }
 
   constructor() {
     super();
@@ -67,8 +56,6 @@ export class StateManager extends Component {
         }
       );
 
-      
-
        soc.on('connect', () => {
         console.log(soc.id);
       });
@@ -105,7 +92,10 @@ export class StateManager extends Component {
 
     soc.on("callback", async (data) => {
       console.log("callingback")
-      this.state.currentMatch = {socket: data.from}
+      this.state.currentMatch = {
+        socket: data.from,
+        tags: [] 
+      }
       this.startCall()({})
     })
 
@@ -114,7 +104,10 @@ export class StateManager extends Component {
     })
 
     soc.on("goNext", async (data) => {
-      this.state.currentMatch = {socket: data.toCall }
+      this.state.currentMatch = {
+        socket: data.toCall,
+        tags: []
+      }
       this.startCall()({})
     })
 
@@ -136,19 +129,15 @@ export class StateManager extends Component {
    
   }
 
-  setUserActive = async () => {
-    console.log("Adding user to users list");
-    const rawResponse = await fetch('/api/users', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ name: this.state.name, socket: this.state.socket.id, tags: this.state.tags })
+  startCall = () => async e => {
+    const peerConnection = this.state.peerConnection;
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+    console.log(`calling: ${this.state.currentMatch.socket}`)
+    this.state.socket.emit("startCall", { 
+      toCall: this.state.currentMatch.socket, 
+      offer: offer 
     });
-    const content = await rawResponse.json();
-
-    console.log(content);
   }
 
   setPage = n => e => {
@@ -191,6 +180,9 @@ export class StateManager extends Component {
             setPage={this.setPage}
             handleChange={this.handleChange}
             setUserActive={this.setUserActive}
+            name={this.state.name}
+            socket={this.state.socket.id}
+            tags={this.state.tags}
           />
         );
       case 2:
@@ -207,6 +199,7 @@ export class StateManager extends Component {
             setPage={this.setPage}
             startCall={this.startCall}
             match={this.state.currentMatch}
+            tags={this.state.tags}
           />
           );
       case 4: // In-call state
@@ -233,4 +226,4 @@ export class StateManager extends Component {
   }
 }
 
-export default StateManager;
+export default SessionManager;

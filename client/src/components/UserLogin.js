@@ -12,9 +12,36 @@ export class UserLogin extends Component {
     this.tags = []
   }
 
-  login = page => e => {
+  createUser = page => async e => {
     e.preventDefault();
-    this.props.setUserActive();
+
+    console.log("Adding user to users list");
+    const rawResponse = await fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: this.props.name, socket: this.props.socket, tags: this.props.tags })
+    });
+    const content = await rawResponse.json();
+    console.log(content);
+    if(!rawResponse.ok)
+      alert(content.msg);
+    else
+      this.props.setPage(page)(e);
+  };
+
+  login = page => async e => {
+    e.preventDefault();
+    const rawResponse = await fetch(`/api/login/${this.props.name}/${this.props.socket}`);
+    const user = await rawResponse.json()
+    console.log(user)
+    if(!rawResponse.ok)
+      return alert(user.msg)
+
+    e.target = { value: user.tags }
+    this.props.handleChange('tags')(e);
     this.props.setPage(page)(e);
   };
 
@@ -22,9 +49,12 @@ export class UserLogin extends Component {
     if(e.keyCode === 13)
     {
       e.preventDefault();
-      this.tags = e.target.value.split(',');
-      console.log(this.tags)
-      e.target.value = this.tags;
+      // tags will be hashed. when hashing want to change all letters to lowercase 
+      // and remove extra spacing at ends so that we can get more consistant results
+      this.tags = e.target.value.split(',')
+        .map((tag) => {return tag.toLowerCase().trim()});
+
+      e.target = { value: this.tags }
       this.props.handleChange('tags')(e);
     }
   }
@@ -52,18 +82,26 @@ export class UserLogin extends Component {
             </div>
             <br />
             <TextField
-              placeholder="What are your interests?"
+              placeholder="eg. skiing, baking, cooking"
               label="Interests"
               onKeyDown={this.genTags}
-              defaultValue='Skiing, Baking, Climbing'
+              defaultValue=''
               margin="normal"
             />
             <br />
-            <Button
-              color="primary"
-              variant="contained"
-              onClick={this.login(2)}
-            >Login</Button>
+            <div>
+              <Button
+                color="primary"
+                variant="contained"
+                onClick={this.login(2)}
+              >Login</Button>
+              <br/>
+              <Button
+                color="primary"
+                variant="contained"
+                onClick={this.createUser(2)}
+              >Create Account</Button>
+            </div>
         </>
       </MuiThemeProvider>
     );
