@@ -25,36 +25,36 @@ export class SessionManager extends Component {
     this.remoteVideo = React.createRef();
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     
     if(Object.keys(this.state.socket).length === 0) 
     {
       console.log("init state manager....");
       const soc = io("/");
-      const peerConnection = new RTCPeerConnection();
-      this.setState({peerConnection: peerConnection});
+      // this.setState({peerConnection: new RTCPeerConnection()});
+      this.state.peerConnection = new RTCPeerConnection();
 
       this.setState({socket: soc});
 
       this.remoteVideoTag = (<><h1>remote Video</h1><video ref={this.remoteVideo} autoPlay={true} muted={false}/></>)
         // formating
 
-      peerConnection.ontrack = function({ streams: [stream] }) { 
+      console.log(this.state.peerConnection)
+      this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
           this.remoteStream = stream;
           console.log(stream);
           console.log(this);
       };
 
-      navigator.getUserMedia(
-        { video: true, audio: true },
+      await navigator.mediaDevices.getUserMedia(
+        { video: true, audio: true }).then(
         stream => {
           stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
           this.localStream = stream;
-        },
+        }).catch(
         error => {
           console.warn(error.message);
-        }
-      );
+        });
 
        soc.on('connect', () => {
         console.log(soc.id);
@@ -62,29 +62,33 @@ export class SessionManager extends Component {
 
       soc.on('incomingCall', async (data) => {
         console.log(`recieving call ${data.from}`);
-        await peerConnection.setRemoteDescription(
+        console.log(this.state.peerConnection)
+        await this.state.peerConnection.setRemoteDescription(
           new RTCSessionDescription(data.offer)
         );
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+        const answer = await this.state.peerConnection.createAnswer();
+        await this.state.peerConnection.setLocalDescription(new RTCSessionDescription(answer))
+                      .catch((e) => {console.log(e)});
+        console.log(answer)
 
-        soc.emit("answerCall", {
+        await soc.emit("answerCall", {
           toCall: data.from,
           answer: answer
         });
       });
 
       soc.on("callAnswered", async (data) => {
-      await peerConnection.setRemoteDescription(
-        new RTCSessionDescription(data.answer)
-      );
+        await this.state.peerConnection.setRemoteDescription(
+          new RTCSessionDescription(data.answer)
+        );
 
       if (!this.state.isAlreadyCalling) {
         this.setState({isAlreadyCalling: true})
-        soc.emit("returnCall", {
+        await soc.emit("returnCall", {
           toCall: data.from
         });
       }
+      console.log(this.state.peerConnection)
       this.setState({ page: 4 });
       console.log("call answered");
 
@@ -100,6 +104,25 @@ export class SessionManager extends Component {
     })
 
     soc.on("callEnded", async (data) => {
+      await this.state.peerConnection.close()
+       //TODO: MOVE TO INIT PEERCONNECTION, REMOVE FROM ONCOMPONENTDIDMOUNT AS WELL
+       this.state.peerConnection = await new RTCPeerConnection();
+       this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
+             this.remoteStream = stream;
+             console.log(stream);
+             console.log(this);
+         };
+   
+        await navigator.mediaDevices.getUserMedia(
+        { video: true, audio: true }).then(
+        stream => {
+          stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
+          this.localStream = stream;
+        }).catch(
+        error => {
+          console.warn(error.message);
+        });
+       ////////////////////////////////////////////`
       this.setState({ page: 2 })
     })
 
@@ -117,23 +140,11 @@ export class SessionManager extends Component {
 
   }
 
-  componentDidUpdate() {
-    //Refs do not get initialized until they are rendered at least once,
-    //componenetDidUpdate will be called after each re render, meaning after switch to in call we will have access to them
-    if(this.localVideo.current) {
-        this.localVideo.current.srcObject = this.localStream;
-        this.remoteVideo.current.srcObject = this.state.peerConnection.remoteStream;
-        console.log(this.localStream);
-        console.log(this.state.peerConnection.remoteStream);
-      }
-   
-  }
-
   startCall = () => async e => {
-    const peerConnection = this.state.peerConnection;
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-    console.log(`calling: ${this.state.currentMatch.socket}`)
+    const offer = await this.state.peerConnection.createOffer();
+    await this.state.peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+
+    console.log(offer)
     this.state.socket.emit("startCall", { 
       toCall: this.state.currentMatch.socket, 
       offer: offer 
@@ -150,25 +161,80 @@ export class SessionManager extends Component {
     this.setState({ [input]: e.target.value });
   };
 
-  endCall = () => e => {
+  endCall = () => async e => {
     console.log("ending call");
+    await this.state.peerConnection.close()
+    //TODO: MOVE TO INIT PEERCONNECTION, REMOVE FROM ONCOMPONENTDIDMOUNT AS WELL
+    this.state.peerConnection = await new RTCPeerConnection();
+    this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
+          this.remoteStream = stream;
+          console.log(stream);
+          console.log(this);
+      };
+
+      await navigator.mediaDevices.getUserMedia(
+        { video: true, audio: true }).then(
+        stream => {
+          stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
+          this.localStream = stream;
+        }).catch(
+        error => {
+          console.warn(error.message);
+        });
+      
+    ////////////////////////////////////////////
     this.state.isAlreadyCalling = false;
-    this.state.socket.emit("endCall", {toCall: this.state.currentMatch.socket});
+    await this.state.socket.emit("endCall", {toCall: this.state.currentMatch.socket});
     this.setState({ page: 2 });
   }  
 
   nextMatch = () => async e => {
     console.log("getting next match");
+    await this.state.peerConnection.close()
+    //TODO: MOVE TO INIT PEERCONNECTION, REMOVE FROM ONCOMPONENTDIDMOUNT AS WELL
+    this.state.peerConnection = await new RTCPeerConnection();
+    this.state.peerConnection.owner = this;
+    this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
+          this.remoteStream = stream;
+          this.owner.forceUpdate()
+          console.log(stream);
+          console.log(this);
+      };
+
+      await navigator.mediaDevices.getUserMedia(
+        { video: true, audio: true }).then(
+        stream => {
+          stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
+          this.localStream = stream;
+        }).catch(
+        error => {
+          console.warn(error.message);
+        });
+    ////////////////////////////////////////////
     this.state.isAlreadyCalling = false;
     const lastSocket = this.state.currentMatch.socket; 
     const match = await fetch(`/api/match/${this.state.socket.id}`);
     this.state.currentMatch = await match.json();
+    if(!match.ok)
+      return alert(match.msg)
     
     await this.state.socket.emit("nextCall", {
       toCall: this.state.currentMatch.socket,
       toEnd: lastSocket
     });
   }  
+
+  componentDidUpdate() {
+    //Refs do not get initialized until they are rendered at least once,
+    //componenetDidUpdate will be called after each re render, meaning after switch to in call we will have access to them
+    if(this.localVideo.current) {
+        this.localVideo.current.srcObject = this.localStream;
+        this.remoteVideo.current.srcObject = this.state.peerConnection.remoteStream;
+        console.log(this.localStream);
+        console.log(this.state.peerConnection.remoteStream);
+      }
+   
+  }
 
   render() {
     const { page, socket } = this.state;

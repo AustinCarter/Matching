@@ -117,7 +117,11 @@ app.get('/api/match/:socket', (req, res) => {
 	var bestFitScore = 0
 	var bestMatch = avaliableUsers[0]
 
-	const self = avaliableUsers.filter(user => user.socket == req.params.socket)[0]
+	var self = avaliableUsers.filter(user => user.socket == req.params.socket)[0]
+	if(!self) self = usersInCall.filter(user => user.socket == req.params.socket)[0]
+	
+	if(!self) return res.status(404).json({ msg: " Current user is not active! " });
+
 	//TODO: check that self is found
 	console.log(`matching ${self.name}`)
 
