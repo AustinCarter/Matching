@@ -117,7 +117,7 @@ app.get('/api/callers', (req, res) => {
  /////////////////////////
 
 app.get('/api/match/:socket', (req, res) => {
-	//TODO: handle the case where no match can be found
+
 	var bestFitScore = 0
 	var bestMatch = avaliableUsers.find(user => user.socket != req.params.socket);
 	if(!bestMatch) return res.status(404).json({ msg: " There are currently no users avalible! " });
@@ -127,11 +127,10 @@ app.get('/api/match/:socket', (req, res) => {
 	
 	if(!self) return res.status(404).json({ msg: " Current user is not active! " });
 
-	//TODO: check that self is found
-	console.log(`matching ${self.name}`)
-
 	//Triple nested for loop! Spooky. Number of tags will relaly be around 10 at most so the inner two 
-	// loops should be about 100 ops.
+	// loops should be about 100 ops. Though a hash set in theory would have better big-O runtime, the constant associated with taking
+	// a hash is too large to justify for a this numer of elements where the only ops happening is an increment and numeric equaity operation
+	// set would end up being slower than a list
 	for(user of avaliableUsers) {
 		score = 0;
 		for(tag of user.tags){
@@ -154,7 +153,6 @@ app.get('/api/match/:socket', (req, res) => {
 });
 
 app.post('/api/users', async (req, res) => {
-	//TODO: handle malformed request
 	console.log(req.body);
 
 	//check if the user exists before adding it 
@@ -192,10 +190,9 @@ app.get('/api/login/:name/:socket', (req, res) => {
 		.exec((err, users) => {
 			if (err) console.log(err.code());
 			if (users.length > 1) 
-				console.log(`[DBERROR]: multiple instances of ${users[0].name} in database`);
+				console.warn(`[DBERROR]: multiple instances of ${users[0].name} in database`);
 			if (users.length == 0) 
 				return res.status(404).json({ msg: " User login does not exist! "});
-
 
 			const hashedTags = users[0].tags.map((tag) => {
 					return murmur.murmur3(tag, HASHSEED)

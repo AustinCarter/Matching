@@ -32,7 +32,7 @@ export class SessionManager extends Component {
     {
       console.log("init state manager....");
       const soc = io("/");
-      // this.setState({peerConnection: new RTCPeerConnection()});
+
       this.state.peerConnection = new RTCPeerConnection();
 
       this.setState({socket: soc});
@@ -90,8 +90,11 @@ export class SessionManager extends Component {
     })
 
     soc.on("callEnded", async (data) => {
+      if(this.sharingScreen)
+        await this.endScreenShare()({});
+
       await this.state.peerConnection.close()
-       await this.initPeerConnection()
+      await this.initPeerConnection()
       this.setState({ page: 2 })
     })
 
@@ -131,6 +134,8 @@ export class SessionManager extends Component {
   };
 
   endCall = () => async e => {
+    if(this.sharingScreen)
+      await this.endScreenShare()(e);
     console.log("ending call");
     await this.state.peerConnection.close()
     await this.initPeerConnection()
@@ -142,7 +147,11 @@ export class SessionManager extends Component {
   }  
 
   nextMatch = () => async e => {
+    if(this.sharingScreen)
+      await this.endScreenShare()(e);
+
     console.log("getting next match");
+
     await this.state.peerConnection.close()
     await this.initPeerConnection()
 
@@ -167,8 +176,7 @@ export class SessionManager extends Component {
   shareScreen = () => async e => {
     const displayMediaStream = await navigator.mediaDevices.getDisplayMedia();
     this.state.peerConnection.getSenders().find(sender => sender.track.kind === 'video').replaceTrack(displayMediaStream.getTracks()[0]);
-    // this.localVideo.getTracks()
-    //   .forEach(track => )
+
     console.log(displayMediaStream)
     this.localVideo.current.srcObject = displayMediaStream;
 
@@ -183,7 +191,8 @@ export class SessionManager extends Component {
   }
 
   endScreenShare = () => async e => {
-    this.state.peerConnection.getSenders().find(sender => sender.track.kind === 'video').replaceTrack(this.localStream.getTracks().find(track => track.kind === 'video'));
+    this.state.peerConnection.getSenders().find(sender => sender.track.kind === 'video')
+          .replaceTrack(this.localStream.getTracks().find(track => track.kind === 'video'));
 
     this.sharingScreen = false;
 
