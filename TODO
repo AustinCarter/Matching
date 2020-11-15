@@ -13,13 +13,6 @@ ex. A member joins as Brian, and requests a match, and that profile is displayed
 
 ---------------------------------------------------------------------------------------------
 
-Look into sessoinmanager and server refactors
-test if fixme is still applicable
-error handling
-doc triple for loop
-on dc
-
-
 
 Login
 	-Create Profile*
@@ -59,9 +52,6 @@ Show user on screen
 Someone ends call
 	- Other user should see the request match screen*
 
-
-FIXME:
-	going next on match (I think back to someone you have already called) results in no remote video source  -- maybe look into reseting a peerconnection?
 
 
 ????: Why does it seem like the naming convention is that everything is camel case, doesn't this get confusing?

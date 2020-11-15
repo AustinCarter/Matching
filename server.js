@@ -22,8 +22,8 @@ const User = require("./schemas/user");
 
 
 
-const avaliableUsers = [];
-const usersInCall = [];
+avaliableUsers = [];
+usersInCall = [];
 
 const HASHSEED = 0x32F1A902;
 
@@ -99,7 +99,11 @@ io.on('connection', socket => {
     	io.to(socket.id).emit('goNext', {toCall: data.toCall})
     })
 
-	io.on('disconnect', () => { console.log(`Disconnecting ${socket.id}`) });
+	socket.on('disconnect', () => { 
+		console.log(`Disconnecting ${socket.id}`)
+		avaliableUsers = avaliableUsers.filter((user) => user.socket != socket.id);
+		usersInCall = usersInCall.filter((user) => user.socket != socket.id);
+	});
 });
 
 //debug endpoints
@@ -125,13 +129,16 @@ app.get('/api/match/:socket', (req, res) => {
 	//TODO: check that self is found
 	console.log(`matching ${self.name}`)
 
+	//Triple nested for loop! Spooky. Number of tags will relaly be around 10 at most so the inner two 
+	// loops should be about 100 ops.
 	for(user of avaliableUsers) {
 		score = 0;
-
 		for(tag of user.tags){
 			for(myTag of self.tags){
-				if(myTag == tag)
+				if(myTag == tag) {
 					score++
+					break;
+				}
 			}
 		}
 

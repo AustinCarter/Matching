@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import Button from '@material-ui/core/Button';
 import UserLogin from './UserLogin';
+import CreateProfile from './CreateProfile';
 import FindMatch from './FindMatch';
 import MatchProfile from './MatchProfile';
 import io from "socket.io-client";
@@ -37,28 +38,10 @@ export class SessionManager extends Component {
       this.setState({socket: soc});
 
       this.remoteVideoTag = (<><h1>remote Video</h1><video ref={this.remoteVideo} autoPlay={true} muted={false}/></>)
-        // formating
+      // formating
 
       console.log(this.state.peerConnection)
-      this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
-          this.remoteStream = stream;
-          console.log(stream);
-          console.log(this);
-      };
-
-      await navigator.mediaDevices.getUserMedia(
-        { video: true, audio: true }).then(
-        stream => {
-          stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
-          this.localStream = stream;
-        }).catch(
-        error => {
-          console.warn(error.message);
-        });
-
-       soc.on('connect', () => {
-        console.log(soc.id);
-      });
+      await this.initPeerConnection()
 
       soc.on('incomingCall', async (data) => {
         console.log(`recieving call ${data.from}`);
@@ -105,24 +88,7 @@ export class SessionManager extends Component {
 
     soc.on("callEnded", async (data) => {
       await this.state.peerConnection.close()
-       //TODO: MOVE TO INIT PEERCONNECTION, REMOVE FROM ONCOMPONENTDIDMOUNT AS WELL
-       this.state.peerConnection = await new RTCPeerConnection();
-       this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
-             this.remoteStream = stream;
-             console.log(stream);
-             console.log(this);
-         };
-   
-        await navigator.mediaDevices.getUserMedia(
-        { video: true, audio: true }).then(
-        stream => {
-          stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
-          this.localStream = stream;
-        }).catch(
-        error => {
-          console.warn(error.message);
-        });
-       ////////////////////////////////////////////`
+       await this.initPeerConnection()
       this.setState({ page: 2 })
     })
 
@@ -164,26 +130,10 @@ export class SessionManager extends Component {
   endCall = () => async e => {
     console.log("ending call");
     await this.state.peerConnection.close()
-    //TODO: MOVE TO INIT PEERCONNECTION, REMOVE FROM ONCOMPONENTDIDMOUNT AS WELL
-    this.state.peerConnection = await new RTCPeerConnection();
-    this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
-          this.remoteStream = stream;
-          console.log(stream);
-          console.log(this);
-      };
+    await this.initPeerConnection()
 
-      await navigator.mediaDevices.getUserMedia(
-        { video: true, audio: true }).then(
-        stream => {
-          stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
-          this.localStream = stream;
-        }).catch(
-        error => {
-          console.warn(error.message);
-        });
-      
-    ////////////////////////////////////////////
     this.state.isAlreadyCalling = false;
+
     await this.state.socket.emit("endCall", {toCall: this.state.currentMatch.socket});
     this.setState({ page: 2 });
   }  
@@ -191,27 +141,10 @@ export class SessionManager extends Component {
   nextMatch = () => async e => {
     console.log("getting next match");
     await this.state.peerConnection.close()
-    //TODO: MOVE TO INIT PEERCONNECTION, REMOVE FROM ONCOMPONENTDIDMOUNT AS WELL
-    this.state.peerConnection = await new RTCPeerConnection();
-    this.state.peerConnection.owner = this;
-    this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
-          this.remoteStream = stream;
-          this.owner.forceUpdate()
-          console.log(stream);
-          console.log(this);
-      };
+    await this.initPeerConnection()
 
-      await navigator.mediaDevices.getUserMedia(
-        { video: true, audio: true }).then(
-        stream => {
-          stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
-          this.localStream = stream;
-        }).catch(
-        error => {
-          console.warn(error.message);
-        });
-    ////////////////////////////////////////////
     this.state.isAlreadyCalling = false;
+
     const lastSocket = this.state.currentMatch.socket; 
     const match = await fetch(`/api/match/${this.state.socket.id}`);
     this.state.currentMatch = await match.json();
@@ -223,6 +156,29 @@ export class SessionManager extends Component {
       toEnd: lastSocket
     });
   }  
+
+  initPeerConnection = async () => {
+    this.state.peerConnection = await new RTCPeerConnection();
+    this.state.peerConnection.owner = this;
+    this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
+          this.remoteStream = stream;
+          this.owner.forceUpdate()
+          console.log("on track")
+          console.log(stream);
+          console.log(this);
+      };
+
+      await navigator.mediaDevices.getUserMedia(
+        { video: true, audio: true }).then(
+        stream => {
+          console.log("adding tracks")
+          stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
+          this.localStream = stream;
+        }).catch(
+        error => {
+          console.warn(error.message);
+        });
+  }
 
   componentDidUpdate() {
     //Refs do not get initialized until they are rendered at least once,
@@ -245,7 +201,6 @@ export class SessionManager extends Component {
           <UserLogin
             setPage={this.setPage}
             handleChange={this.handleChange}
-            setUserActive={this.setUserActive}
             name={this.state.name}
             socket={this.state.socket.id}
             tags={this.state.tags}
@@ -257,6 +212,7 @@ export class SessionManager extends Component {
             setPage={this.setPage}
             handleChange={this.handleChange}
             socket={socket}
+            tags={this.state.tags}
           />
         );
       case 3:
@@ -285,6 +241,16 @@ export class SessionManager extends Component {
               onClick={this.nextMatch()}
             >Next Match</Button>
             </div>
+          );
+        case 5:
+          return (
+            <CreateProfile
+              setPage={this.setPage}
+              handleChange={this.handleChange}
+              name={this.state.name}
+              socket={this.state.socket.id}
+              tags={this.state.tags}
+            />
           );
       default:
         (console.log('State not found'))

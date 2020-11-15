@@ -9,10 +9,8 @@ const HASHSEED = 0x32F1A902;
 export class MatchProfile extends Component {
 
   render() {
-    const { values, startCall, setPage, match, tags } = this.props;
+    const { startCall, match, tags } = this.props;
     match.tags = match.tags ? match.tags : []
-    console.log(tags)
-    console.log(match)
     return (
       <MuiThemeProvider>
         <>
@@ -24,7 +22,9 @@ export class MatchProfile extends Component {
               if(match.tags.includes(murmur.murmur3(tag, HASHSEED)))
               return (
                 <Chip label={tag} />
-                )})
+                )
+              else return <></>
+              })
             }
             </div>
             <br />

@@ -1,9 +1,7 @@
 import React, { Component } from 'react';
-import Dialog from '@material-ui/core/Dialog';
-import AppBar from '@material-ui/core/AppBar';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
-import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
+import Chip from '@material-ui/core/Chip';
 
 export class FindMatch extends Component {
 
@@ -22,21 +20,24 @@ export class FindMatch extends Component {
   };
 
   render() {
-    const { values, handleChange, setPage, socket } = this.props;
+    const { socket, tags } = this.props;
     return (
       <MuiThemeProvider>
         <>
-          <Dialog
-            open
-            fullWidth
-            maxWidth='sm'
-          >
-            <Button
-              color="primary"
-              variant="contained"
-              onClick={this.getMatch(3, socket)}
-            >Find Match</Button>
-          </Dialog>
+          <h1>My Interests</h1>
+          <div>
+             { tags.map((tag) => {
+              return (
+                <Chip label={tag} />
+                )})
+            }
+          </div>
+          <br/>
+          <Button
+            color="primary"
+            variant="contained"
+            onClick={this.getMatch(3, socket)}
+          >Find Match</Button>
         </>
       </MuiThemeProvider>
     );
