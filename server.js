@@ -119,10 +119,11 @@ app.get('/api/callers', (req, res) => {
 app.get('/api/match/:socket', (req, res) => {
 	//TODO: handle the case where no match can be found
 	var bestFitScore = 0
-	var bestMatch = avaliableUsers[0]
+	var bestMatch = avaliableUsers.find(user => user.socket != req.params.socket);
+	if(!bestMatch) return res.status(404).json({ msg: " There are currently no users avalible! " });
 
-	var self = avaliableUsers.filter(user => user.socket == req.params.socket)[0]
-	if(!self) self = usersInCall.filter(user => user.socket == req.params.socket)[0]
+	var self = avaliableUsers.find(user => user.socket == req.params.socket)
+	if(!self) self = usersInCall.find(user => user.socket == req.params.socket)
 	
 	if(!self) return res.status(404).json({ msg: " Current user is not active! " });
 

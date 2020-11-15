@@ -37,8 +37,11 @@ export class SessionManager extends Component {
 
       this.setState({socket: soc});
 
-      this.remoteVideoTag = (<><h1>remote Video</h1><video ref={this.remoteVideo} autoPlay={true} muted={false}/></>)
-      // formating
+      this.streamButton = (<Button
+              color="primary"
+              variant="contained"
+              onClick={this.shareScreen()}
+            >Share Screen</Button>); //
 
       console.log(this.state.peerConnection)
       await this.initPeerConnection()
@@ -102,7 +105,7 @@ export class SessionManager extends Component {
 
     }
     else
-      console.log("socket already exists for this manager");
+      console.warn("socket already exists for this manager");
 
   }
 
@@ -149,13 +152,48 @@ export class SessionManager extends Component {
     const match = await fetch(`/api/match/${this.state.socket.id}`);
     this.state.currentMatch = await match.json();
     if(!match.ok)
-      return alert(match.msg)
+    {
+      await this.state.socket.emit("endCall", {toCall: lastSocket});
+      this.setState({ page: 2 });
+      return alert(this.state.currentMatch.msg);
+    }
     
     await this.state.socket.emit("nextCall", {
       toCall: this.state.currentMatch.socket,
       toEnd: lastSocket
     });
   }  
+
+  shareScreen = () => async e => {
+    const displayMediaStream = await navigator.mediaDevices.getDisplayMedia();
+    this.state.peerConnection.getSenders().find(sender => sender.track.kind === 'video').replaceTrack(displayMediaStream.getTracks()[0]);
+    // this.localVideo.getTracks()
+    //   .forEach(track => )
+    console.log(displayMediaStream)
+    this.localVideo.current.srcObject = displayMediaStream;
+
+    this.sharingScreen = true;
+
+     this.streamButton = (<Button
+              color="primary"
+              variant="contained"
+              onClick={this.endScreenShare()}
+            >End Screen Share</Button>); //
+    this.forceUpdate()
+  }
+
+  endScreenShare = () => async e => {
+    this.state.peerConnection.getSenders().find(sender => sender.track.kind === 'video').replaceTrack(this.localStream.getTracks().find(track => track.kind === 'video'));
+
+    this.sharingScreen = false;
+
+     this.streamButton = (<Button
+              color="primary"
+              variant="contained"
+              onClick={this.shareScreen()}
+            >Share Screen</Button>); //
+     this.forceUpdate()
+  }
 
   initPeerConnection = async () => {
     this.state.peerConnection = await new RTCPeerConnection();
@@ -174,6 +212,7 @@ export class SessionManager extends Component {
           console.log("adding tracks")
           stream.getTracks().forEach(track => this.state.peerConnection.addTrack(track, stream));
           this.localStream = stream;
+          console.log(stream.getTracks())
         }).catch(
         error => {
           console.warn(error.message);
@@ -183,7 +222,7 @@ export class SessionManager extends Component {
   componentDidUpdate() {
     //Refs do not get initialized until they are rendered at least once,
     //componenetDidUpdate will be called after each re render, meaning after switch to in call we will have access to them
-    if(this.localVideo.current) {
+    if(this.localVideo.current && !this.sharingScreen) {
         this.localVideo.current.srcObject = this.localStream;
         this.remoteVideo.current.srcObject = this.state.peerConnection.remoteStream;
         console.log(this.localStream);
@@ -240,9 +279,10 @@ export class SessionManager extends Component {
               variant="contained"
               onClick={this.nextMatch()}
             >Next Match</Button>
+              {this.streamButton}
             </div>
           );
-        case 5:
+        case 5: //
           return (
             <CreateProfile
               setPage={this.setPage}
@@ -253,7 +293,7 @@ export class SessionManager extends Component {
             />
           );
       default:
-        (console.log('State not found'))
+        (console.warn('State not found'))
     }
   }
 }
