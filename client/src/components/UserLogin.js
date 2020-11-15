@@ -7,16 +7,22 @@ import { ThemeProvider as MuiThemeProvider } from '@material-ui/core/styles';
 export class UserLogin extends Component {
 
   login = page => async e => {
-    e.preventDefault();
-    const rawResponse = await fetch(`/api/login/${this.props.name}/${this.props.socket}`);
-    const user = await rawResponse.json()
-    console.log(user)
-    if(!rawResponse.ok)
-      return alert(user.msg)
+    if(!(e.type == 'click'))
+      await this.props.handleChange('name')(e);
 
-    e.target = { value: user.tags }
-    this.props.handleChange('tags')(e);
-    this.props.setPage(page)(e);
+    if(e.keyCode === 13 || e.type == 'click')
+    {
+      e.preventDefault();
+      const rawResponse = await fetch(`/api/login/${this.props.name}/${this.props.socket}`);
+      const user = await rawResponse.json()
+      console.log(user)
+      if(!rawResponse.ok)
+        return alert(user.msg)
+
+      e.target = { value: user.tags }
+      this.props.handleChange('tags')(e);
+      this.props.setPage(page)(e);
+    }
   };
 
   render() {
@@ -28,7 +34,8 @@ export class UserLogin extends Component {
             <TextField
               placeholder="Enter Your Name"
               label="Name"
-              onChange={handleChange('name')}
+              onKeyDown={this.login(2)}
+              onBlur={handleChange('name')}
               defaultValue=''
               margin="normal"
             />

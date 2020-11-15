@@ -20,8 +20,6 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 const User = require("./schemas/user");
 
-
-
 avaliableUsers = [];
 usersInCall = [];
 
@@ -62,16 +60,16 @@ io.on('connection', socket => {
     socket.on("endCall", (data) => {
     	console.log(`${socket.id} ending call with ${data.toCall}`) 
 
-    	var index = 0;
     	for(i = 0; i < usersInCall.length; i++) {
     		user = usersInCall[i];
 
     		console.log(`${user.socket} | ${socket.id} | ${data.toCall}`)
 
     		if(user.socket == socket.id || user.socket == data.toCall) {
-    			console.log("User being moved to avaliable user pool");
+    			console.log(`${user.socket} being moved to avaliable user pool: ${i}`);
     			avaliableUsers.push(user);
     			usersInCall.splice(i, 1);
+    			console.log(usersInCall)
     			i--;
     		}
     	}
@@ -86,7 +84,7 @@ io.on('connection', socket => {
     	var index = 0;
 		for(user of usersInCall) {
 			if(user.socket == data.toEnd) {
-				console.log("Moving user back to avaliable pool");
+				console.log(`Moving user back to avaliable pool`);
 				avaliableUsers.push(user);
 				usersInCall.splice(index, 1);
 				break; // only have one item to remove
@@ -124,7 +122,6 @@ app.get('/api/match/:socket', (req, res) => {
 
 	var self = avaliableUsers.find(user => user.socket == req.params.socket)
 	if(!self) self = usersInCall.find(user => user.socket == req.params.socket)
-	
 	if(!self) return res.status(404).json({ msg: " Current user is not active! " });
 
 	//Triple nested for loop! Spooky. Number of tags will relaly be around 10 at most so the inner two 
@@ -185,6 +182,10 @@ app.post('/api/users', async (req, res) => {
 });
 
 app.get('/api/login/:name/:socket', (req, res) => {
+	var self = avaliableUsers.find(user => user.name == req.params.name)
+	if(!self) self = usersInCall.find(user => user.name == req.params.name)
+	if(self) return res.status(409).json({ msg: " Current user is already logged in! " });
+
 	User.find()
 		.where('name').equals(req.params.name.toLowerCase())
 		.exec((err, users) => {

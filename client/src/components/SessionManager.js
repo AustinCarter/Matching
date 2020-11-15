@@ -93,6 +93,7 @@ export class SessionManager extends Component {
       if(this.sharingScreen)
         await this.endScreenShare()({});
 
+      this.setState({isAlreadyCalling: false});
       await this.state.peerConnection.close()
       await this.initPeerConnection()
       this.setState({ page: 2 })
@@ -129,7 +130,6 @@ export class SessionManager extends Component {
   };
 
   handleChange = input => e => {
-    console.log(e.target.value)
     this.setState({ [input]: e.target.value });
   };
 
@@ -140,7 +140,7 @@ export class SessionManager extends Component {
     await this.state.peerConnection.close()
     await this.initPeerConnection()
 
-    this.state.isAlreadyCalling = false;
+    this.setState({isAlreadyCalling: false});
 
     await this.state.socket.emit("endCall", {toCall: this.state.currentMatch.socket});
     this.setState({ page: 2 });
@@ -155,7 +155,7 @@ export class SessionManager extends Component {
     await this.state.peerConnection.close()
     await this.initPeerConnection()
 
-    this.state.isAlreadyCalling = false;
+    this.setState({isAlreadyCalling: false});
 
     const lastSocket = this.state.currentMatch.socket; 
     const match = await fetch(`/api/match/${this.state.socket.id}`);
@@ -210,9 +210,6 @@ export class SessionManager extends Component {
     this.state.peerConnection.ontrack = function({ streams: [stream] }) { 
           this.remoteStream = stream;
           this.owner.forceUpdate()
-          console.log("on track")
-          console.log(stream);
-          console.log(this);
       };
 
       await navigator.mediaDevices.getUserMedia(
